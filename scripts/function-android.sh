@@ -88,7 +88,7 @@ APP_PLATFORM := android-${API}
 
 APP_CFLAGS := -O3 -DANDROID ${LTS_BUILD_FLAG}${BUILD_DATE} -Wall -Wno-deprecated-declarations -Wno-pointer-sign -Wno-switch -Wno-unused-result -Wno-unused-variable
 
-APP_LDFLAGS := -Wl,--hash-style=both
+APP_LDFLAGS := -Wl,--hash-style=both -Wl,-z,max-page-size=16384
 EOF
 }
 
@@ -124,7 +124,15 @@ get_toolchain() {
   x86_64 | amd64) HOST_ARCH=x86_64 ;;
   esac
 
-  echo "${HOST_OS}-${HOST_ARCH}"
+  local TOOLCHAIN_ID="${HOST_OS}-${HOST_ARCH}"
+
+  # Fall back to x86_64 if the native toolchain doesn't exist in the NDK
+  # (e.g. Apple Silicon Mac with an x86_64-only NDK package)
+  if [[ ! -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN_ID}" ]]; then
+    TOOLCHAIN_ID="${HOST_OS}-x86_64"
+  fi
+
+  echo "${TOOLCHAIN_ID}"
 }
 
 get_cmake_system_processor() {
@@ -222,10 +230,10 @@ get_arch_specific_cflags() {
     echo "-march=armv8-a -DFFMPEG_KIT_ARM64_V8A"
     ;;
   x86)
-    echo "-march=i686 -mtune=intel -mssse3 -mfpmath=sse -m32 -DFFMPEG_KIT_X86"
+    echo "-march=i686 -mssse3 -mfpmath=sse -m32 -DFFMPEG_KIT_X86"
     ;;
   x86-64)
-    echo "-march=x86-64 -msse4.2 -mpopcnt -m64 -mtune=intel -DFFMPEG_KIT_X86_64"
+    echo "-march=x86-64 -msse4.2 -mpopcnt -m64 -DFFMPEG_KIT_X86_64"
     ;;
   esac
 }
@@ -395,7 +403,7 @@ get_size_optimization_ldflags() {
   arm64-v8a)
     case $1 in
     ffmpeg)
-      echo "-Wl,--gc-sections ${LINK_TIME_OPTIMIZATION_FLAGS} -fuse-ld=gold -O2 -ffunction-sections -fdata-sections -finline-functions"
+      echo "-Wl,--gc-sections ${LINK_TIME_OPTIMIZATION_FLAGS} -O2 -ffunction-sections -fdata-sections -finline-functions"
       ;;
     *)
       echo "-Wl,--gc-sections -Os -ffunction-sections -fdata-sections"
@@ -444,7 +452,7 @@ get_ldflags() {
   fi
   local COMMON_LINKED_LIBS=$(get_common_linked_libraries "$1")
 
-  echo "${ARCH_FLAGS} ${OPTIMIZATION_FLAGS} ${COMMON_LINKED_LIBS} -Wl,--hash-style=both -Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libunwind.a"
+  echo "${ARCH_FLAGS} ${OPTIMIZATION_FLAGS} ${COMMON_LINKED_LIBS} -Wl,--hash-style=both -Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libunwind.a -Wl,-z,max-page-size=16384"
 }
 
 create_mason_cross_file() {
@@ -917,9 +925,12 @@ get_aar_directory() {
 }
 
 android_ndk_cmake() {
-  local cmake=$(find "${ANDROID_HOME}"/cmake -path \*/bin/cmake -type f -print -quit)
+  local cmake=$(find "${ANDROID_HOME}"/cmake -path \*/bin/cmake -type f -print -quit 2>/dev/null)
   if [[ -z ${cmake} ]]; then
-    cmake=$(which cmake)
+    cmake=$(find "${ANDROID_SDK_ROOT}"/cmake -path \*/bin/cmake -type f -print -quit 2>/dev/null)
+  fi
+  if [[ -z ${cmake} ]]; then
+    cmake=$(which cmake 2>/dev/null)
   fi
   if [[ -z ${cmake} ]]; then
     cmake="missing_cmake"
@@ -955,14 +966,14 @@ set_toolchain_paths() {
 
   HOST=$(get_host)
 
-  export AR=${HOST}-ar
+  export AR=llvm-ar
   export CC=$(get_clang_host)-clang
   export CXX=$(get_clang_host)-clang++
 
   if [ "$1" == "x264" ]; then
     export AS=${CC}
   else
-    export AS=${HOST}-as
+    export AS=llvm-as
   fi
 
   case ${ARCH} in
@@ -971,10 +982,10 @@ set_toolchain_paths() {
     ;;
   esac
 
-  export LD=${HOST}-ld
-  export RANLIB=${HOST}-ranlib
-  export STRIP=${HOST}-strip
-  export NM=${HOST}-nm
+  export LD=ld.lld
+  export RANLIB=llvm-ranlib
+  export STRIP=llvm-strip
+  export NM=llvm-nm
 
   export INSTALL_PKG_CONFIG_DIR="${BASEDIR}"/prebuilt/$(get_build_directory)/pkgconfig
   export ZLIB_PACKAGE_CONFIG_PATH="${INSTALL_PKG_CONFIG_DIR}/zlib.pc"

@@ -26,6 +26,11 @@ esac
 # ALWAYS CLEAN THE PREVIOUS BUILD
 make distclean 2>/dev/null 1>/dev/null
 
+# NDK 29 / Clang 21: strip flags that conflict with x264's own configure tests
+# -fno-integrated-as causes the external assembler to receive -march=armv7-a which it rejects
+# x264 sets its own -march based on --host, so we remove it from CFLAGS here
+export CFLAGS=$(echo "$CFLAGS" | sed 's/-fno-integrated-as//g' | sed 's/-march=[^ ]*//g')
+
 # REGENERATE BUILD FILES IF NECESSARY OR REQUESTED
 if [[ ! -f "${BASEDIR}"/src/"${LIB_NAME}"/configure ]] || [[ ${RECONF_x264} -eq 1 ]]; then
   autoreconf_library "${LIB_NAME}"

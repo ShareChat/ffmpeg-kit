@@ -361,7 +361,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
 ###################################################################
 
 ./configure \
-  --cross-prefix="${HOST}-" \
+ --cross-prefix="${HOST}-" \
   --sysroot="${ANDROID_SYSROOT}" \
   --prefix="${FFMPEG_LIBRARY_PATH}" \
   --pkg-config="${HOST_PKG_CONFIG_PATH}" \
@@ -415,6 +415,139 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --disable-nvenc \
   --disable-vaapi \
   --disable-vdpau \
+  --enable-small \
+  --enable-pthreads \
+  --enable-avfilter \
+  --enable-avformat \
+  --enable-avcodec \
+  --enable-swresample \
+  --enable-swscale \
+  --enable-hwaccels \
+  \
+  --disable-decoders \
+  --enable-decoder=pcm_u16be \
+  --enable-decoder=pcm_u16le \
+  --enable-decoder=pcm_u8 \
+  --enable-decoder=pcm_s8 \
+  --enable-decoder=pcm_s16be \
+  --enable-decoder=pcm_s16le \
+  --enable-decoder=pcm_f32le \
+  --enable-decoder=pcm_f64le \
+  --enable-decoder=mp3 \
+  --enable-decoder=mpeg4 \
+  --enable-decoder=mpegvideo \
+  --enable-decoder=aac \
+  --enable-decoder=h264 \
+  --enable-decoder=dnxhd \
+  --enable-decoder=png \
+  --enable-decoder=mjpeg \
+  \
+  --disable-encoders \
+  --enable-encoder=libx264 \
+  --enable-encoder=pcm_s16le \
+  --enable-encoder=pcm_s8 \
+  --enable-encoder=pcm_u8 \
+  --enable-encoder=pcm_f32le \
+  --enable-encoder=pcm_f64le \
+  --enable-encoder=mpeg4 \
+  --enable-encoder=mov \
+  --enable-encoder=h264 \
+  --enable-encoder=aac \
+  --enable-encoder=mp3 \
+  --enable-encoder=rawvideo \
+  --enable-encoder=png \
+  --enable-encoder=mjpeg \
+  \
+  --enable-parser=aac \
+  --enable-parser=mpeg4video \
+  --enable-parser=mpegaudio \
+  --enable-parser=mpegvideo \
+  --enable-parser=dnxhd \
+  --enable-parser=h264 \
+  \
+  --disable-protocols \
+  --enable-protocol=file \
+  --enable-protocol=md5 \
+  --enable-protocol=pipe \
+  --enable-protocol=concat \
+  \
+  --disable-muxers \
+  --enable-muxer=dnxhd  \
+  --enable-muxer=pcm_s16le \
+  --enable-muxer=pcm_s8 \
+  --enable-muxer=pcm_u8 \
+  --enable-muxer=mov \
+  --enable-muxer=ismv \
+  --enable-muxer=mp4 \
+  --enable-muxer=matroska \
+  --enable-muxer=avi \
+  --enable-muxer=h264 \
+  --enable-muxer=yuv4mpegpipe \
+  --enable-muxer=crc \
+  --enable-muxer=framecrc \
+  --enable-muxer=framehash \
+  --enable-muxer=framemd5 \
+  --enable-muxer=hash \
+  --enable-muxer=md5 \
+  --enable-muxer=mpegts \
+  --enable-muxer=mp3 \
+  --enable-muxer=image2 \
+  \
+  --disable-demuxers \
+  --enable-demuxer=amr \
+  --enable-demuxer=mp3 \
+  --enable-demuxer=pcm_s16le \
+  --enable-demuxer=pcm_s8 \
+  --enable-demuxer=pcm_u8 \
+  --enable-demuxer=mov \
+  --enable-demuxer=h264 \
+  --enable-demuxer=mp4 \
+  --enable-demuxer=mpegvideo \
+  --enable-demuxer=aac \
+  --enable-demuxer=matroska \
+  --enable-demuxer=avi \
+  --enable-demuxer=concat \
+  --enable-demuxer=mpegts \
+  --enable-demuxer=rawvideo \
+  --enable-demuxer=aac \
+  --enable-demuxer=image2 \
+  \
+  --disable-parsers \
+  --enable-parser=h264 \
+  --enable-parser=aac \
+  --enable-parser=mpegaudio \
+  \
+  --disable-bsfs \
+  --enable-bsf=h264_metadata \
+  --enable-bsf=h264_redundant_pps \
+  --enable-bsf=h264_mp4toannexb \
+  --enable-bsf=mpeg4_unpack_bframes \
+  --enable-bsf=noise \
+  --enable-bsf=remove_extra \
+  --enable-bsf=trace_headers \
+  --enable-bsf=av1_metadata \
+  --enable-bsf=chomp \
+  --enable-bsf=dump_extra \
+  --enable-bsf=extract_extradata \
+  --enable-bsf=imxdump \
+  --enable-bsf=mov2textsub \
+  --enable-bsf=mpeg2_metadata \
+  --enable-bsf=null \
+  --enable-bsf=text2movsub \
+  --enable-bsf=trace_headers \
+  \
+  --disable-indevs \
+  --enable-indev=lavfi \
+  --disable-outdevs \
+  --enable-debug \
+  --disable-htmlpages \
+  --disable-manpages \
+  --disable-podpages \
+  --disable-txtpages \
+  --disable-ffplay \
+  --disable-ffprobe \
+  --enable-hardcoded-tables \
+  --enable-yasm \
   ${CONFIGURE_POSTFIX} 1>>"${BASEDIR}"/build.log 2>&1
 
 if [[ $? -ne 0 ]]; then
