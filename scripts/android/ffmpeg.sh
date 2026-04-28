@@ -300,8 +300,6 @@ for library in {1..58}; do
       CONFIGURE_POSTFIX+=" --disable-sdl2"
     elif [[ ${library} -eq $((LIBRARY_ANDROID_ZLIB + 1)) ]]; then
       CONFIGURE_POSTFIX+=" --disable-zlib"
-    elif [[ ${library} -eq $((LIBRARY_ANDROID_MEDIA_CODEC + 1)) ]]; then
-      CONFIGURE_POSTFIX+=" --disable-mediacodec"
     fi
   fi
 done
@@ -350,13 +348,22 @@ export CFLAGS="${HIGH_PRIORITY_INCLUDES} ${CFLAGS}"
 ulimit -n 2048 1>>"${BASEDIR}"/build.log 2>&1
 
 ########################### CUSTOMIZATIONS #######################
+cd "${BASEDIR}" 1>>"${BASEDIR}"/build.log 2>&1 || exit 1
+git checkout android/ffmpeg-kit-android-lib/src/main/cpp/ffmpegkit.c 1>>"${BASEDIR}"/build.log 2>&1
+cd "${BASEDIR}"/src/"${LIB_NAME}" 1>>"${BASEDIR}"/build.log 2>&1 || exit 1
+git checkout libavformat/file.c 1>>"${BASEDIR}"/build.log 2>&1
+git checkout libavformat/protocols.c 1>>"${BASEDIR}"/build.log 2>&1
+git checkout libavutil 1>>"${BASEDIR}"/build.log 2>&1
 
 # 1. Use thread local log levels
 ${SED_INLINE} 's/static int av_log_level/__thread int av_log_level/g' "${BASEDIR}"/src/"${LIB_NAME}"/libavutil/log.c 1>>"${BASEDIR}"/build.log 2>&1 || exit 1
 
-# 2. Set friendly ffmpeg version
-FFMPEG_VERSION="v$(get_user_friendly_ffmpeg_version)"
-${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffbuild/version.sh 1>>"${BASEDIR}"/build.log 2>&1 || exit 1
+# 2. Enable ffmpeg-kit SAF protocols
+cat "${BASEDIR}"/tools/protocols/libavformat_file.c >> libavformat/file.c
+cat "${BASEDIR}"/tools/protocols/libavutil_file.h >> libavutil/file.h
+cat "${BASEDIR}"/tools/protocols/libavutil_file.c >> libavutil/file.c
+awk '{gsub(/ff_file_protocol;/,"ff_file_protocol;\nextern const URLProtocol ff_saf_protocol;")}1' libavformat/protocols.c > libavformat/protocols.c.tmp
+cat libavformat/protocols.c.tmp > libavformat/protocols.c
 
 ###################################################################
 
@@ -373,12 +380,14 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --ranlib="${RANLIB}" \
   --strip="${STRIP}" \
   --nm="${NM}" \
-  --extra-libs="$(pkg-config --libs --static cpu-features)" \
+  --extra-libs="$(pkg-config --libs --static cpu-features) -landroid" \
+  --extra-ldflags="-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384" \
   --target-os=android \
   ${ASM_OPTIONS} \
   --enable-cross-compile \
   --enable-pic \
   --enable-jni \
+  --enable-mediacodec \
   --enable-optimizations \
   --enable-swscale \
   ${BUILD_LIBRARY_OPTIONS} \
@@ -408,6 +417,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --disable-vdpau \
   --disable-videotoolbox \
   --disable-audiotoolbox \
+  --disable-vulkan \
   --disable-appkit \
   --disable-alsa \
   --disable-cuda \
@@ -438,6 +448,8 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --enable-decoder=mpegvideo \
   --enable-decoder=aac \
   --enable-decoder=h264 \
+  --enable-decoder=h264_mediacodec \
+  --enable-decoder=hevc \
   --enable-decoder=dnxhd \
   --enable-decoder=png \
   --enable-decoder=mjpeg \
@@ -452,6 +464,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --enable-encoder=mpeg4 \
   --enable-encoder=mov \
   --enable-encoder=h264 \
+  --enable-encoder=hevc \
   --enable-encoder=aac \
   --enable-encoder=mp3 \
   --enable-encoder=rawvideo \
@@ -464,6 +477,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --enable-parser=mpegvideo \
   --enable-parser=dnxhd \
   --enable-parser=h264 \
+  --enable-parser=hevc \
   \
   --disable-protocols \
   --enable-protocol=file \
@@ -482,6 +496,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --enable-muxer=matroska \
   --enable-muxer=avi \
   --enable-muxer=h264 \
+  --enable-muxer=hevc \
   --enable-muxer=yuv4mpegpipe \
   --enable-muxer=crc \
   --enable-muxer=framecrc \
@@ -501,6 +516,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --enable-demuxer=pcm_u8 \
   --enable-demuxer=mov \
   --enable-demuxer=h264 \
+  --enable-demuxer=hevc \
   --enable-demuxer=mp4 \
   --enable-demuxer=mpegvideo \
   --enable-demuxer=aac \
@@ -514,6 +530,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   \
   --disable-parsers \
   --enable-parser=h264 \
+  --enable-parser=hevc \
   --enable-parser=aac \
   --enable-parser=mpegaudio \
   \
@@ -521,6 +538,9 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --enable-bsf=h264_metadata \
   --enable-bsf=h264_redundant_pps \
   --enable-bsf=h264_mp4toannexb \
+  --enable-bsf=hevc_metadata \
+  --enable-bsf=hevc_redundant_pps \
+  --enable-bsf=hevc_mp4toannexb \
   --enable-bsf=mpeg4_unpack_bframes \
   --enable-bsf=noise \
   --enable-bsf=remove_extra \
@@ -546,8 +566,7 @@ ${SED_INLINE} "s/\$version/$FFMPEG_VERSION/g" "${BASEDIR}"/src/"${LIB_NAME}"/ffb
   --disable-txtpages \
   --disable-ffplay \
   --disable-ffprobe \
-  --enable-hardcoded-tables \
-  --enable-yasm \
+  --disable-x86asm \
   ${CONFIGURE_POSTFIX} 1>>"${BASEDIR}"/build.log 2>&1
 
 if [[ $? -ne 0 ]]; then
@@ -598,6 +617,9 @@ overwrite_file "${BASEDIR}"/src/ffmpeg/libavcodec/arm/mathops.h "${FFMPEG_LIBRAR
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavformat/network.h "${FFMPEG_LIBRARY_PATH}"/include/libavformat/network.h 1>>"${BASEDIR}"/build.log 2>&1
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavformat/os_support.h "${FFMPEG_LIBRARY_PATH}"/include/libavformat/os_support.h 1>>"${BASEDIR}"/build.log 2>&1
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavformat/url.h "${FFMPEG_LIBRARY_PATH}"/include/libavformat/url.h 1>>"${BASEDIR}"/build.log 2>&1
+overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/attributes_internal.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/attributes_internal.h 1>>"${BASEDIR}"/build.log 2>&1
+overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/bprint.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/bprint.h 1>>"${BASEDIR}"/build.log 2>&1
+overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/getenv_utf8.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/getenv_utf8.h 1>>"${BASEDIR}"/build.log 2>&1
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/internal.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/internal.h 1>>"${BASEDIR}"/build.log 2>&1
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/libm.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/libm.h 1>>"${BASEDIR}"/build.log 2>&1
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/reverse.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/reverse.h 1>>"${BASEDIR}"/build.log 2>&1
@@ -608,6 +630,7 @@ overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/x86/timer.h "${FFMPEG_LIBRARY_P
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/arm/timer.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/arm/timer.h 1>>"${BASEDIR}"/build.log 2>&1
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/aarch64/timer.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/aarch64/timer.h 1>>"${BASEDIR}"/build.log 2>&1
 overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/x86/emms.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/x86/emms.h 1>>"${BASEDIR}"/build.log 2>&1
+overwrite_file "${BASEDIR}"/src/ffmpeg/libavutil/wchar_filename.h "${FFMPEG_LIBRARY_PATH}"/include/libavutil/wchar_filename.h 1>>"${BASEDIR}"/build.log 2>&1
 
 if [ $? -eq 0 ]; then
   echo "ok"

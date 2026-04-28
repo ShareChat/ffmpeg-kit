@@ -285,7 +285,7 @@ public class FFmpegKitConfig {
      */
     private static void statistics(final long sessionId, final int videoFrameNumber,
                                    final float videoFps, final float videoQuality, final long size,
-                                   final int time, final double bitrate, final double speed) {
+                                   final double time, final double bitrate, final double speed) {
         final Statistics statistics = new Statistics(sessionId, videoFrameNumber, videoFps, videoQuality, size, time, bitrate, speed);
 
         final Session session = getSession(sessionId);
@@ -916,6 +916,45 @@ public class FFmpegKitConfig {
         } catch (final Throwable t) {
             android.util.Log.e(TAG, String.format("Failed to close file descriptor: %d.%s", fd, Exceptions.getStackTraceString(t)));
         }
+    }
+
+    /**
+     * Called by native saf protocol to obtain the file descriptor for a previously opened SAF uri.
+     * The saf uri must have been opened via getSafParameter before this is called.
+     *
+     * @param safId file descriptor stored in pfdMap by getSafParameter
+     * @return the native file descriptor, or -1 on failure
+     */
+    private static int safOpen(final int safId) {
+        try {
+            ParcelFileDescriptor pfd = pfdMap.get(safId);
+            if (pfd != null) {
+                return pfd.getFd();
+            }
+        } catch (final Throwable t) {
+            android.util.Log.e(TAG, String.format("Failed to open file descriptor: %d.%s", safId, Exceptions.getStackTraceString(t)));
+        }
+        return -1;
+    }
+
+    /**
+     * Called by native saf protocol to close a previously opened SAF file descriptor.
+     *
+     * @param fd file descriptor to close
+     * @return 0 on success, -1 on failure
+     */
+    private static int safClose(final int fd) {
+        try {
+            ParcelFileDescriptor pfd = pfdMap.get(fd);
+            if (pfd != null) {
+                pfd.close();
+                pfdMap.delete(fd);
+                return 0;
+            }
+        } catch (final Throwable t) {
+            android.util.Log.e(TAG, String.format("Failed to close file descriptor: %d.%s", fd, Exceptions.getStackTraceString(t)));
+        }
+        return -1;
     }
 
     /**

@@ -101,7 +101,7 @@ static void close_fd_avio_context(AVIOContext *ctx) {
 }
 
 int android_avformat_open_input(AVFormatContext **ps, const char *filename,
-                        ff_const59 AVInputFormat *fmt, AVDictionary **options) {
+                        const AVInputFormat *fmt, AVDictionary **options) {
     if (!(*ps) && !(*ps = avformat_alloc_context()))
         return AVERROR(ENOMEM);
 

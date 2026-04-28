@@ -40,7 +40,7 @@ int android_avio_open2(AVIOContext **s, const char *url, int flags,
 #define avio_open2 android_avio_open2
 
 int android_avformat_open_input(AVFormatContext **ps, const char *filename,
-                        ff_const59 AVInputFormat *fmt, AVDictionary **options);
+                        const AVInputFormat *fmt, AVDictionary **options);
 #define avformat_open_input android_avformat_open_input
 
 #endif //FFMPEG_KIT_SAF_WRAPPER_H
