@@ -1,6 +1,6 @@
 #!/bin/bash
 
-$(android_ndk_cmake) -DBUILD_PIC=ON || return 1
+$(android_ndk_cmake) -DBUILD_PIC=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 || return 1
 
 make -C "$(get_cmake_build_directory)" || return 1
 
