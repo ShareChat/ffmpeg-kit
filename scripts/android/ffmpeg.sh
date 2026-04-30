@@ -568,8 +568,9 @@ fi
 # Inject ff_saf_protocol into the configure-generated protocol_list.c.
 # Must run after ./configure since configure regenerates this file.
 # Use print-based awk (not gsub) to avoid & being interpreted as matched text.
-awk '/&ff_file_protocol,/{print; print "    &ff_saf_protocol,"; next}1' libavformat/protocol_list.c > libavformat/protocol_list.c.tmp
-cat libavformat/protocol_list.c.tmp > libavformat/protocol_list.c
+awk '/&ff_file_protocol,/{print; print "    &ff_saf_protocol,"; next}1' libavformat/protocol_list.c > libavformat/protocol_list.c.tmp || exit 1
+cat libavformat/protocol_list.c.tmp > libavformat/protocol_list.c || exit 1
+grep -q '&ff_saf_protocol,' libavformat/protocol_list.c || { echo "ERROR: SAF protocol injection into protocol_list.c failed" 1>>"${BASEDIR}"/build.log 2>&1; exit 1; }
 
 if [[ -z ${NO_OUTPUT_REDIRECTION} ]]; then
   make -j$(get_cpu_count) 1>>"${BASEDIR}"/build.log 2>&1

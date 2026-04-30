@@ -54,8 +54,8 @@ static int saf_open(URLContext *h, const char *filename, int flags)
         return AVERROR(EINVAL);
     }
     saf_id = strtol(saf_id_string, &final, 10);
-    if (saf_id_string == final) {
-        saf_id = -1;
+    if (saf_id_string == final || *final != '\0' || saf_id < 0) {
+        return AVERROR(EINVAL);
     }
 
     saf_open_function custom_saf_open = av_get_saf_open();
