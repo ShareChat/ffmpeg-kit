@@ -129,6 +129,7 @@ get_toolchain() {
   # Fall back to x86_64 if the native toolchain doesn't exist in the NDK
   # (e.g. Apple Silicon Mac with an x86_64-only NDK package)
   if [[ ! -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN_ID}" ]]; then
+    echo "WARNING: NDK toolchain not found for ${TOOLCHAIN_ID}, falling back to ${HOST_OS}-x86_64" 1>>"${BASEDIR}"/build.log 2>&1
     TOOLCHAIN_ID="${HOST_OS}-x86_64"
   fi
 

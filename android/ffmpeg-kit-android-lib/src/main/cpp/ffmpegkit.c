@@ -64,6 +64,7 @@ static pthread_cond_t monitorCondition;
 
 pthread_t callbackThread;
 int redirectionEnabled;
+static pthread_once_t redirectionOnce = PTHREAD_ONCE_INIT;
 
 struct CallbackData *callbackDataHead;
 struct CallbackData *callbackDataTail;
@@ -582,17 +583,13 @@ int saf_close(int fd) {
 }
 
 /**
- * Used by JNI methods to enable redirection.
+ * Runs exactly once via pthread_once — spawns the callback thread and
+ * installs the log/statistics hooks. pthread_once guarantees no two callers
+ * (JNI_OnLoad and the public enableNativeRedirection JNI entry) can both
+ * reach pthread_create, closing the check-then-act race in the previous
+ * mutex split.
  */
-static void enableNativeRedirection() {
-    mutexLock();
-
-    if (redirectionEnabled != 0) {
-        mutexUnlock();
-        return;
-    }
-    mutexUnlock();
-
+static void startRedirectionOnce() {
     int rc = pthread_create(&callbackThread, 0, callbackThreadFunction, 0);
     if (rc != 0) {
         LOGE("Failed to create callback thread (rc=%d).\n", rc);
@@ -605,6 +602,13 @@ static void enableNativeRedirection() {
 
     av_log_set_callback(ffmpegkit_log_callback_function);
     set_report_callback(ffmpegkit_statistics_callback_function);
+}
+
+/**
+ * Used by JNI methods to enable redirection.
+ */
+static void enableNativeRedirection() {
+    pthread_once(&redirectionOnce, startRedirectionOnce);
 }
 
 /**

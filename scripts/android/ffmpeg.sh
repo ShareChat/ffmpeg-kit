@@ -358,16 +358,18 @@ git checkout libavutil 1>>"${BASEDIR}"/build.log 2>&1
 ${SED_INLINE} 's/static int av_log_level/__thread int av_log_level/g' "${BASEDIR}"/src/"${LIB_NAME}"/libavutil/log.c 1>>"${BASEDIR}"/build.log 2>&1 || exit 1
 
 # 2. Enable ffmpeg-kit SAF protocols
-cat "${BASEDIR}"/tools/protocols/libavformat_file.c >> libavformat/file.c
-cat "${BASEDIR}"/tools/protocols/libavutil_file.h >> libavutil/file.h
-cat "${BASEDIR}"/tools/protocols/libavutil_file.c >> libavutil/file.c
-awk '{gsub(/ff_file_protocol;/,"ff_file_protocol;\nextern const URLProtocol ff_saf_protocol;")}1' libavformat/protocols.c > libavformat/protocols.c.tmp
-cat libavformat/protocols.c.tmp > libavformat/protocols.c
+# Guard appends with a marker so re-runs after partial failures don't duplicate code
+grep -q 'ff_saf_protocol' libavformat/file.c      || cat "${BASEDIR}"/tools/protocols/libavformat_file.c >> libavformat/file.c
+grep -q 'ff_saf_open'     libavutil/file.h         || cat "${BASEDIR}"/tools/protocols/libavutil_file.h   >> libavutil/file.h
+grep -q 'ff_saf_open'     libavutil/file.c         || cat "${BASEDIR}"/tools/protocols/libavutil_file.c   >> libavutil/file.c
+awk '{gsub(/ff_file_protocol;/,"ff_file_protocol;\nextern const URLProtocol ff_saf_protocol;")}1' libavformat/protocols.c > libavformat/protocols.c.tmp || exit 1
+cat libavformat/protocols.c.tmp > libavformat/protocols.c || exit 1
+grep -q 'ff_saf_protocol' libavformat/protocols.c || { echo "ERROR: SAF extern injection into protocols.c failed" 1>>"${BASEDIR}"/build.log 2>&1; exit 1; }
 
 ###################################################################
 
 ./configure \
- --cross-prefix="${HOST}-" \
+  --cross-prefix="${HOST}-" \
   --sysroot="${ANDROID_SYSROOT}" \
   --prefix="${FFMPEG_LIBRARY_PATH}" \
   --pkg-config="${HOST_PKG_CONFIG_PATH}" \
