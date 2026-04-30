@@ -426,7 +426,6 @@ cat libavformat/protocol_list.c.tmp > libavformat/protocol_list.c
   --disable-nvenc \
   --disable-vaapi \
   --disable-vdpau \
-  --enable-small \
   --enable-pthreads \
   --enable-avfilter \
   --enable-avformat \
