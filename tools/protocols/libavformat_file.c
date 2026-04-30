@@ -46,7 +46,7 @@ static int saf_open(URLContext *h, const char *filename, int flags)
     char filename_backup[128];
 
     av_strstart(filename, "saf:", &filename);
-    av_strlcpy(filename_backup, filename, FFMIN(sizeof(filename), sizeof(filename_backup)));
+    av_strlcpy(filename_backup, filename, sizeof(filename_backup));
     saf_id_string = av_strtok(filename_backup, ".", &saveptr);
 
     saf_id = strtol(saf_id_string, &final, 10);
@@ -57,16 +57,15 @@ static int saf_open(URLContext *h, const char *filename, int flags)
     saf_open_function custom_saf_open = av_get_saf_open();
     if (custom_saf_open != NULL) {
         int rc = custom_saf_open(saf_id);
-        if (rc) {
-            c->fd = rc;
-        } else {
-            c->fd = saf_id;
+        if (rc < 0) {
+            return AVERROR(EBADF);
         }
+        c->fd = rc;
     } else {
         c->fd = saf_id;
     }
 
-    h->is_streamed = !fstat(saf_id, &st) && S_ISFIFO(st.st_mode);
+    h->is_streamed = !fstat(c->fd, &st) && S_ISFIFO(st.st_mode);
 
     /* Buffer writes more than the default 32k to improve throughput especially
      * with networked file systems */
@@ -81,71 +80,19 @@ static int saf_open(URLContext *h, const char *filename, int flags)
 
 static int saf_check(URLContext *h, int mask)
 {
-    int ret = 0;
-    const char *filename = h->filename;
-    av_strstart(filename, "saf:", &filename);
-
-    {
-#if HAVE_ACCESS && defined(R_OK)
-    if (access(filename, F_OK) < 0)
-        return AVERROR(errno);
-    if (mask&AVIO_FLAG_READ)
-        if (access(filename, R_OK) >= 0)
-            ret |= AVIO_FLAG_READ;
-    if (mask&AVIO_FLAG_WRITE)
-        if (access(filename, W_OK) >= 0)
-            ret |= AVIO_FLAG_WRITE;
-#else
-    struct stat st;
-#   ifndef _WIN32
-    ret = stat(filename, &st);
-#   else
-    ret = win32_stat(filename, &st);
-#   endif
-    if (ret < 0)
-        return AVERROR(errno);
-
-    ret |= st.st_mode&S_IRUSR ? mask&AVIO_FLAG_READ  : 0;
-    ret |= st.st_mode&S_IWUSR ? mask&AVIO_FLAG_WRITE : 0;
-#endif
-    }
-    return ret;
+    /* SAF URIs are opaque file descriptors managed by Java; local filesystem
+     * access/stat calls on the remainder are meaningless. */
+    return AVERROR(ENOSYS);
 }
 
 static int saf_delete(URLContext *h)
 {
-#if HAVE_UNISTD_H
-    int ret;
-    const char *filename = h->filename;
-    av_strstart(filename, "saf:", &filename);
-
-    ret = rmdir(filename);
-    if (ret < 0 && (errno == ENOTDIR
-#   ifdef _WIN32
-        || errno == EINVAL
-#   endif
-        ))
-        ret = unlink(filename);
-    if (ret < 0)
-        return AVERROR(errno);
-
-    return ret;
-#else
     return AVERROR(ENOSYS);
-#endif /* HAVE_UNISTD_H */
 }
 
 static int saf_move(URLContext *h_src, URLContext *h_dst)
 {
-    const char *filename_src = h_src->filename;
-    const char *filename_dst = h_dst->filename;
-    av_strstart(filename_src, "saf:", &filename_src);
-    av_strstart(filename_dst, "saf:", &filename_dst);
-
-    if (rename(filename_src, filename_dst) < 0)
-        return AVERROR(errno);
-
-    return 0;
+    return AVERROR(ENOSYS);
 }
 
 static int saf_close(URLContext *h)

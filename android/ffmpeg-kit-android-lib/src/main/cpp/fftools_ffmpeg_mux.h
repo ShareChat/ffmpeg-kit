@@ -40,6 +40,7 @@
 #ifndef FFTOOLS_FFMPEG_MUX_H
 #define FFTOOLS_FFMPEG_MUX_H
 
+#include <inttypes.h>
 #include <stdatomic.h>
 #include <stdint.h>
 

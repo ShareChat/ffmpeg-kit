@@ -349,7 +349,6 @@ ulimit -n 2048 1>>"${BASEDIR}"/build.log 2>&1
 
 ########################### CUSTOMIZATIONS #######################
 cd "${BASEDIR}" 1>>"${BASEDIR}"/build.log 2>&1 || exit 1
-git checkout android/ffmpeg-kit-android-lib/src/main/cpp/ffmpegkit.c 1>>"${BASEDIR}"/build.log 2>&1
 cd "${BASEDIR}"/src/"${LIB_NAME}" 1>>"${BASEDIR}"/build.log 2>&1 || exit 1
 git checkout libavformat/file.c 1>>"${BASEDIR}"/build.log 2>&1
 git checkout libavformat/protocols.c 1>>"${BASEDIR}"/build.log 2>&1
@@ -462,9 +461,6 @@ cat libavformat/protocols.c.tmp > libavformat/protocols.c
   --enable-encoder=pcm_f32le \
   --enable-encoder=pcm_f64le \
   --enable-encoder=mpeg4 \
-  --enable-encoder=mov \
-  --enable-encoder=h264 \
-  --enable-encoder=hevc \
   --enable-encoder=aac \
   --enable-encoder=mp3 \
   --enable-encoder=rawvideo \
@@ -554,19 +550,16 @@ cat libavformat/protocols.c.tmp > libavformat/protocols.c
   --enable-bsf=mpeg2_metadata \
   --enable-bsf=null \
   --enable-bsf=text2movsub \
-  --enable-bsf=trace_headers \
   \
   --disable-indevs \
   --enable-indev=lavfi \
   --disable-outdevs \
-  --enable-debug \
   --disable-htmlpages \
   --disable-manpages \
   --disable-podpages \
   --disable-txtpages \
   --disable-ffplay \
   --disable-ffprobe \
-  --disable-x86asm \
   ${CONFIGURE_POSTFIX} 1>>"${BASEDIR}"/build.log 2>&1
 
 if [[ $? -ne 0 ]]; then

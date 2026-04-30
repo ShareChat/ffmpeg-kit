@@ -970,11 +970,7 @@ set_toolchain_paths() {
   export CC=$(get_clang_host)-clang
   export CXX=$(get_clang_host)-clang++
 
-  if [ "$1" == "x264" ]; then
-    export AS=${CC}
-  else
-    export AS=llvm-as
-  fi
+  export AS=${CC}
 
   case ${ARCH} in
   arm64-v8a)
@@ -1020,5 +1016,5 @@ build_android_lts_support() {
 
   # BUILD
   "$(get_clang_host)"-clang ${CFLAGS} -Wno-unused-command-line-argument -c "${BASEDIR}"/android/ffmpeg-kit-android-lib/src/main/cpp/android_lts_support.c -o "${BASEDIR}"/android/ffmpeg-kit-android-lib/src/main/cpp/android_lts_support.o ${LDFLAGS} 1>>"${BASEDIR}"/build.log 2>&1
-  "${HOST}"-ar rcs "${BASEDIR}"/android/ffmpeg-kit-android-lib/src/main/cpp/libandroidltssupport.a "${BASEDIR}"/android/ffmpeg-kit-android-lib/src/main/cpp/android_lts_support.o 1>>"${BASEDIR}"/build.log 2>&1
+  "${AR}" rcs "${BASEDIR}"/android/ffmpeg-kit-android-lib/src/main/cpp/libandroidltssupport.a "${BASEDIR}"/android/ffmpeg-kit-android-lib/src/main/cpp/android_lts_support.o 1>>"${BASEDIR}"/build.log 2>&1
 }
