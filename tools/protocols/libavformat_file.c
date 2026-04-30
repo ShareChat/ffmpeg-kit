@@ -47,13 +47,14 @@ static int saf_open(URLContext *h, const char *filename, int flags)
 
     av_strstart(filename, "saf:", &filename);
     av_strlcpy(filename_backup, filename, sizeof(filename_backup));
-    saf_id_string = av_strtok(filename_backup, ".", &saveptr);
+    /* Java emits "saf:<fd>/<displayName>", split on '/' to isolate the fd */
+    saf_id_string = av_strtok(filename_backup, "/", &saveptr);
 
     if (!saf_id_string || *saf_id_string == '\0') {
         return AVERROR(EINVAL);
     }
     saf_id = strtol(saf_id_string, &final, 10);
-    if ((saf_id_string == final) || *final) {
+    if (saf_id_string == final) {
         saf_id = -1;
     }
 

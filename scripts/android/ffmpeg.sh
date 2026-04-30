@@ -363,8 +363,6 @@ cat "${BASEDIR}"/tools/protocols/libavutil_file.h >> libavutil/file.h
 cat "${BASEDIR}"/tools/protocols/libavutil_file.c >> libavutil/file.c
 awk '{gsub(/ff_file_protocol;/,"ff_file_protocol;\nextern const URLProtocol ff_saf_protocol;")}1' libavformat/protocols.c > libavformat/protocols.c.tmp
 cat libavformat/protocols.c.tmp > libavformat/protocols.c
-awk '{gsub(/&ff_file_protocol,/,"&ff_file_protocol,\n    &ff_saf_protocol,")}1' libavformat/protocol_list.c > libavformat/protocol_list.c.tmp
-cat libavformat/protocol_list.c.tmp > libavformat/protocol_list.c
 
 ###################################################################
 
@@ -567,6 +565,12 @@ if [[ $? -ne 0 ]]; then
   echo -e "failed\n\nSee build.log for details\n"
   exit 1
 fi
+
+# Inject ff_saf_protocol into the configure-generated protocol_list.c.
+# Must run after ./configure since configure regenerates this file.
+# Use print-based awk (not gsub) to avoid & being interpreted as matched text.
+awk '/&ff_file_protocol,/{print; print "    &ff_saf_protocol,"; next}1' libavformat/protocol_list.c > libavformat/protocol_list.c.tmp
+cat libavformat/protocol_list.c.tmp > libavformat/protocol_list.c
 
 if [[ -z ${NO_OUTPUT_REDIRECTION} ]]; then
   make -j$(get_cpu_count) 1>>"${BASEDIR}"/build.log 2>&1
