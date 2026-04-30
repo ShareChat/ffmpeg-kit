@@ -386,7 +386,6 @@ cat libavformat/protocols.c.tmp > libavformat/protocols.c
   --enable-cross-compile \
   --enable-pic \
   --enable-jni \
-  --enable-mediacodec \
   --enable-optimizations \
   --enable-swscale \
   ${BUILD_LIBRARY_OPTIONS} \
