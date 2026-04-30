@@ -591,8 +591,6 @@ static void enableNativeRedirection() {
         mutexUnlock();
         return;
     }
-    redirectionEnabled = 1;
-
     mutexUnlock();
 
     int rc = pthread_create(&callbackThread, 0, callbackThreadFunction, 0);
@@ -600,6 +598,10 @@ static void enableNativeRedirection() {
         LOGE("Failed to create callback thread (rc=%d).\n", rc);
         return;
     }
+
+    mutexLock();
+    redirectionEnabled = 1;
+    mutexUnlock();
 
     av_log_set_callback(ffmpegkit_log_callback_function);
     set_report_callback(ffmpegkit_statistics_callback_function);

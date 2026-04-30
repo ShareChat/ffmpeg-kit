@@ -7,8 +7,8 @@ android {
     defaultConfig {
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 240440
-        versionName "4.4"
+        versionCode 260600
+        versionName "6.0"
         project.archivesBaseName = "ffmpeg-kit"
         consumerProguardFiles 'proguard-rules.pro'
     }

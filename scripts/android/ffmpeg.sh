@@ -363,6 +363,8 @@ cat "${BASEDIR}"/tools/protocols/libavutil_file.h >> libavutil/file.h
 cat "${BASEDIR}"/tools/protocols/libavutil_file.c >> libavutil/file.c
 awk '{gsub(/ff_file_protocol;/,"ff_file_protocol;\nextern const URLProtocol ff_saf_protocol;")}1' libavformat/protocols.c > libavformat/protocols.c.tmp
 cat libavformat/protocols.c.tmp > libavformat/protocols.c
+awk '{gsub(/&ff_file_protocol,/,"&ff_file_protocol,\n    &ff_saf_protocol,")}1' libavformat/protocol_list.c > libavformat/protocol_list.c.tmp
+cat libavformat/protocol_list.c.tmp > libavformat/protocol_list.c
 
 ###################################################################
 
