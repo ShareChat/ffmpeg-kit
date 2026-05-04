@@ -2,13 +2,13 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 30
-    ndkVersion "22.0.7026061"
+    ndkVersion "29.0.14206865"
 
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 30
-        versionCode 160440
-        versionName "4.4.LTS"
+        versionCode 160600
+        versionName "6.0.LTS"
         project.archivesBaseName = "ffmpeg-kit"
         consumerProguardFiles 'proguard-rules.pro'
     }
@@ -17,6 +17,12 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 

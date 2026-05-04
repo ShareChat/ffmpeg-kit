@@ -25,7 +25,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
-import android.util.SparseArray;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.arthenica.smartexception.java.Exceptions;
 
@@ -81,7 +81,7 @@ public class FFmpegKitConfig {
     private static LogCallback globalLogCallbackFunction;
     private static StatisticsCallback globalStatisticsCallbackFunction;
     private static ExecuteCallback globalExecuteCallbackFunction;
-    private static final SparseArray<ParcelFileDescriptor> pfdMap;
+    private static final ConcurrentHashMap<Integer, ParcelFileDescriptor> pfdMap;
     private static LogRedirectionStrategy globalLogRedirectionStrategy;
 
     static {
@@ -124,7 +124,7 @@ public class FFmpegKitConfig {
         globalStatisticsCallbackFunction = null;
         globalExecuteCallbackFunction = null;
 
-        pfdMap = new SparseArray<>();
+        pfdMap = new ConcurrentHashMap<>();
         globalLogRedirectionStrategy = LogRedirectionStrategy.PRINT_LOGS_WHEN_NO_CALLBACKS_DEFINED;
 
         NativeLoader.enableRedirection();
@@ -285,7 +285,7 @@ public class FFmpegKitConfig {
      */
     private static void statistics(final long sessionId, final int videoFrameNumber,
                                    final float videoFps, final float videoQuality, final long size,
-                                   final int time, final double bitrate, final double speed) {
+                                   final double time, final double bitrate, final double speed) {
         final Statistics statistics = new Statistics(sessionId, videoFrameNumber, videoFps, videoQuality, size, time, bitrate, speed);
 
         final Session session = getSession(sessionId);
@@ -858,7 +858,7 @@ public class FFmpegKitConfig {
         try {
             ParcelFileDescriptor parcelFileDescriptor = context.getContentResolver().openFileDescriptor(uri, openMode);
             fd = parcelFileDescriptor.getFd();
-            pfdMap.put(fd, parcelFileDescriptor);
+            pfdMap.put(fd, parcelFileDescriptor); // keyed by OS fd; safOpen receives this same fd
         } catch (final Throwable t) {
             android.util.Log.e(TAG, String.format("Failed to obtain %s parcelFileDescriptor for %s.%s", openMode, uri.toString(), Exceptions.getStackTraceString(t)));
         }
@@ -906,16 +906,55 @@ public class FFmpegKitConfig {
      *
      * @param fd parcel file descriptor created for a saf uri
      */
+    // Called from app thread only (legacy path). pfdMap is ConcurrentHashMap so no lock needed.
     private static void closeParcelFileDescriptor(final int fd) {
         try {
-            ParcelFileDescriptor pfd = pfdMap.get(fd);
+            ParcelFileDescriptor pfd = pfdMap.remove(fd);
             if (pfd != null) {
                 pfd.close();
-                pfdMap.delete(fd);
             }
         } catch (final Throwable t) {
             android.util.Log.e(TAG, String.format("Failed to close file descriptor: %d.%s", fd, Exceptions.getStackTraceString(t)));
         }
+    }
+
+    /**
+     * Called by native saf protocol to obtain the file descriptor for a previously opened SAF uri.
+     * The saf uri must have been opened via getSafParameter before this is called.
+     *
+     * @param safId file descriptor stored in pfdMap by getSafParameter
+     * @return the native file descriptor, or -1 on failure
+     */
+    private static int safOpen(final int safId) {
+        try {
+            ParcelFileDescriptor pfd = pfdMap.get(safId);
+            if (pfd != null) {
+                return pfd.getFd();
+            }
+        } catch (final Throwable t) {
+            android.util.Log.e(TAG, String.format("Failed to open file descriptor: %d.%s", safId, Exceptions.getStackTraceString(t)));
+        }
+        return -1;
+    }
+
+    /**
+     * Called by native saf protocol to close a previously opened SAF file descriptor.
+     *
+     * @param fd file descriptor to close
+     * @return 0 on success, -1 on failure
+     */
+    // Called from native FFmpeg threads. ConcurrentHashMap.remove is atomic — no extra lock needed.
+    private static int safClose(final int fd) {
+        try {
+            ParcelFileDescriptor pfd = pfdMap.remove(fd);
+            if (pfd != null) {
+                pfd.close();
+                return 0;
+            }
+        } catch (final Throwable t) {
+            android.util.Log.e(TAG, String.format("Failed to close file descriptor: %d.%s", fd, Exceptions.getStackTraceString(t)));
+        }
+        return -1;
     }
 
     /**
